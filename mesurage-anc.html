@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeu — Frise chronologique — Mesurage & ANC</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+
+  .container { max-width: 720px; margin: 0 auto; }
+
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: #6b6b65; margin-bottom: 24px; }
+
+  .hint-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #6b6b65;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 24px;
+  }
+
+  .hint-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  /* Profil */
+  .profil-card {
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+
+  .profil-card h2 { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+
+  .radio-group { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f5f4f0;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .radio-option.selected {
+    background: #e6f1fb;
+    border-color: #378add;
+    color: #0c447c;
+    font-weight: 500;
+  }
+
+  /* Frise */
+  .frise { margin-bottom: 32px; }
+
+  .timeline-row {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 12px;
+  }
+
+  .date-col {
+    width: 140px;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding-right: 14px;
+  }
+
+  .date-type {
+    font-size: 10px;
+    color: #888780;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+
+  .date-val {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a18;
+    line-height: 1.3;
+  }
+
+  .dot-col {
+    width: 28px;
+    min-width: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .vline { width: 2px; background: #d3d1c7; flex: 1; min-height: 12px; }
+  .vline.hidden { visibility: hidden; }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #b4b2a9;
+    border: 2px solid #f5f4f0;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .dot.major { width: 16px; height: 16px; background: #185fa5; }
+
+  /* Drop zones */
+  .drop-zone {
+    flex: 1;
+    min-height: 56px;
+    border: 1.5px dashed #b4b2a9;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #888780;
+    display: flex;
+    align-items: center;
+    line-height: 1.5;
+    align-self: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+
+  .drop-zone:active { transform: scale(0.98); }
+
+  .drop-zone.drop-target {
+    background: #e6f1fb;
+    border-color: #378add;
+    border-style: dashed;
+  }
+
+  .drop-zone.filled {
+    border-style: solid;
+    border-color: #d3d1c7;
+    background: #fff;
+    color: #1a1a18;
+  }
+
+  .drop-zone.correct {
+    border-style: solid;
+    background: #eaf3de;
+    border-color: #3b6d11;
+    color: #27500a;
+  }
+
+  .drop-zone.wrong {
+    border-style: solid;
+    background: #fcebeb;
+    border-color: #a32d2d;
+    color: #791f1f;
+  }
+
+  /* Remove button inside filled zone */
+  .drop-zone .remove-btn {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #d3d1c7;
+    color: #444441;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    border: none;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .drop-zone .remove-btn:hover { background: #b4b2a9; }
+
+  /* Cards */
+  .pool-label { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+
+  .card-pool { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+
+  .card {
+    font-size: 12px;
+    color: #1a1a18;
+    background: #fff;
+    border: 1.5px solid #b4b2a9;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    line-height: 1.5;
+    user-select: none;
+    transition: background 0.15s, border-color 0.15s, opacity 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card:active { transform: scale(0.97); }
+
+  .card.selected {
+    background: #e6f1fb;
+    border-color: #185fa5;
+    color: #0c447c;
+    font-weight: 500;
+  }
+
+  .card.used {
+    opacity: 0.2;
+    pointer-events: none;
+  }
+
+  /* Selected card indicator bar at top */
+  .selected-bar {
+    background: #fff;
+    border: 1.5px solid #185fa5;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #0c447c;
+    margin-bottom: 16px;
+    display: none;
+    line-height: 1.5;
+  }
+
+  .selected-bar.visible { display: block; }
+
+  .selected-bar-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #378add;
+    margin-bottom: 4px;
+  }
+
+  /* Validate */
+  .validate-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: #185fa5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 20px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .validate-btn:hover { background: #0c447c; }
+  .validate-btn:disabled { background: #b4b2a9; cursor: default; }
+
+  /* Results */
+  .results-card {
+    display: none;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .results-card.visible { display: block; }
+
+  .score-big { font-size: 52px; font-weight: 700; color: #185fa5; line-height: 1; margin-bottom: 6px; }
+  .score-label { font-size: 14px; color: #6b6b65; margin-bottom: 20px; }
+  .result-msg { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .result-sub { font-size: 13px; color: #6b6b65; margin-bottom: 24px; }
+
+  .share-btn {
+    display: inline-block;
+    padding: 11px 24px;
+    background: #0a66c2;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s;
+  }
+
+  .share-btn:hover { background: #084f97; }
+
+  .send-status { font-size: 12px; color: #888780; margin-top: 16px; min-height: 18px; }
+
+  @media (max-width: 480px) {
+    .date-col { width: 100px; min-width: 100px; }
+    .date-val { font-size: 12px; }
+    h1 { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Frise chronologique — Mesurage & ANC</h1>
+  <p class="subtitle">Replace chaque étape réglementaire sur la bonne date. 3 questions.</p>
+  <div class="hint-bar">
+    <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5"/>
+    </svg>
+    <span>Appuie sur une étiquette pour la sélectionner, puis appuie sur une case de la frise pour la placer.</span>
+  </div>
+  <div class="selected-bar" id="selectedBar">
+    <div class="selected-bar-label">Étiquette sélectionnée — appuie sur une case</div>
+    <div id="selectedBarText"></div>
+  </div>
+  <div class="profil-card">
+    <h2>Avant de commencer — vous êtes :</h2>
+    <div class="radio-group">
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en activité')">Diagnostiqueur en activité</label>
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en formation')">Diagnostiqueur en formation</label>
+      <label class="radio-option" onclick="selectProfil(this, 'Professionnel de l\'immobilier')">Professionnel de l'immobilier</label>
+      <label class="radio-option" onclick="selectProfil(this, 'Autre / Curieux')">Autre / Curieux</label>
+    </div>
+    <div id="profilError" style="display:none; margin-top:10px; font-size:12px; color:#a32d2d;">Merci de sélectionner votre profil avant de valider.</div>
+  </div>
+  <div class="frise" id="frise"></div>
+  <div class="pool-label">Étiquettes à placer</div>
+  <div class="card-pool" id="pool"></div>
+  <button class="validate-btn" id="validateBtn" onclick="validate()">Valider mes réponses</button>
+  <div class="results-card" id="results">
+    <div class="score-big" id="scoreBig"></div>
+    <div class="score-label" id="scoreLabel"></div>
+    <div class="result-msg" id="resultMsg"></div>
+    <div class="result-sub" id="resultSub"></div>
+    <button class="share-btn" onclick="shareLinkedIn()">Partager sur LinkedIn</button>
+    <div class="send-status" id="sendStatus"></div>
+  </div>
+</div>
+<script>
+const SHEET_URL = "COLLER_ICI_L_URL_DU_GOOGLE_APPS_SCRIPT";
+const DOMAINE = "Mesurage-ANC";
+const events = [
+  {
+    dateType: "Loi Carrez",
+    dateVal: "19 juin 1997",
+    major: true,
+    id: "m1",
+    answer: "Obligation de mentionner la superficie privative des lots de copropriété dans les compromis de vente (loi n°96-1107 du 18 décembre 1996, décret d\'application n°97-532 du 29 mai 1997)"
+  },
+  {
+    dateType: "Loi Boutin",
+    dateVal: "25 mars 2009",
+    major: false,
+    id: "m2",
+    answer: "Obligation de mentionner la surface habitable dans les contrats de location (loi n°2009-323)"
+  },
+  {
+    dateType: "",
+    dateVal: "1er janv. 2011",
+    major: false,
+    id: "m3",
+    answer: "Le document issu du contrôle des installations d\'assainissement non collectif (ANC) devient le 7e diagnostic du Dossier de Diagnostic Technique (DDT)"
+  },
+];
+
+let placements = {};
+let selectedCardId = null;
+let profil = "";
+let validated = false;
+
+function selectProfil(el, val) {
+  document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  profil = val;
+  const card = document.querySelector('.profil-card');
+  card.style.border = '';
+  card.style.background = '';
+  const msg = document.getElementById('profilError');
+  if (msg) msg.style.display = 'none';
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function setSelectedCard(cardId) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  selectedCardId = cardId;
+  const bar = document.getElementById('selectedBar');
+  const barText = document.getElementById('selectedBarText');
+  if (cardId) {
+    const ev = events.find(e => e.id === cardId);
+    bar.classList.add('visible');
+    barText.textContent = ev.answer;
+    const card = document.getElementById('card-' + cardId);
+    if (card) card.classList.add('selected');
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function buildFrise() {
+  const frise = document.getElementById('frise');
+  frise.innerHTML = '';
+  events.forEach((ev, idx) => {
+    const row = document.createElement('div');
+    row.className = 'timeline-row';
+    const dateCol = document.createElement('div');
+    dateCol.className = 'date-col';
+    if (ev.dateType) {
+      const t = document.createElement('div');
+      t.className = 'date-type';
+      t.textContent = ev.dateType;
+      dateCol.appendChild(t);
+    }
+    const d = document.createElement('div');
+    d.className = 'date-val';
+    d.textContent = ev.dateVal;
+    dateCol.appendChild(d);
+    const dotWrap = document.createElement('div');
+    dotWrap.className = 'dot-col';
+    const topLine = document.createElement('div');
+    topLine.className = 'vline' + (idx === 0 ? ' hidden' : '');
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (ev.major ? ' major' : '');
+    dot.id = 'dot-' + ev.id;
+    const botLine = document.createElement('div');
+    botLine.className = 'vline' + (idx === events.length - 1 ? ' hidden' : '');
+    dotWrap.appendChild(topLine);
+    dotWrap.appendChild(dot);
+    dotWrap.appendChild(botLine);
+    const drop = document.createElement('div');
+    drop.className = 'drop-zone';
+    drop.dataset.eventId = ev.id;
+    drop.id = 'drop-' + ev.id;
+    drop.textContent = 'Appuie ici pour placer…';
+    drop.addEventListener('click', () => onDropZoneClick(ev.id));
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drop-target'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('drop-target'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault();
+      drop.classList.remove('drop-target');
+      const cardId = e.dataTransfer.getData('text/plain');
+      if (cardId) placeCard(cardId, ev.id);
+    });
+    row.appendChild(dateCol);
+    row.appendChild(dotWrap);
+    row.appendChild(drop);
+    frise.appendChild(row);
+  });
+}
+
+function onDropZoneClick(eventId) {
+  if (validated) return;
+  if (!selectedCardId) return;
+  placeCard(selectedCardId, eventId);
+  setSelectedCard(null);
+}
+
+function placeCard(cardId, eventId) {
+  if (validated) return;
+  const prevCardId = placements[eventId];
+  if (prevCardId && prevCardId !== cardId) {
+    const prevCard = document.getElementById('card-' + prevCardId);
+    if (prevCard) prevCard.classList.remove('used');
+  }
+  Object.keys(placements).forEach(eid => {
+    if (placements[eid] === cardId && eid !== eventId) {
+      const otherDrop = document.getElementById('drop-' + eid);
+      if (otherDrop) {
+        otherDrop.textContent = 'Appuie ici pour placer…';
+        otherDrop.className = 'drop-zone';
+      }
+      delete placements[eid];
+    }
+  });
+  placements[eventId] = cardId;
+  const card = document.getElementById('card-' + cardId);
+  const drop = document.getElementById('drop-' + eventId);
+  drop.innerHTML = '';
+  const textSpan = document.createElement('span');
+  textSpan.textContent = card.textContent;
+  textSpan.style.flex = '1';
+  textSpan.style.paddingRight = '22px';
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-btn';
+  removeBtn.textContent = '×';
+  removeBtn.title = 'Retirer';
+  removeBtn.onclick = (e) => { e.stopPropagation(); removeCard(eventId); };
+  drop.appendChild(textSpan);
+  drop.appendChild(removeBtn);
+  drop.className = 'drop-zone filled';
+  card.classList.add('used');
+}
+
+function removeCard(eventId) {
+  if (validated) return;
+  const cardId = placements[eventId];
+  if (!cardId) return;
+  const card = document.getElementById('card-' + cardId);
+  if (card) card.classList.remove('used');
+  delete placements[eventId];
+  const drop = document.getElementById('drop-' + eventId);
+  drop.textContent = 'Appuie ici pour placer…';
+  drop.className = 'drop-zone';
+}
+
+function buildPool() {
+  const pool = document.getElementById('pool');
+  pool.innerHTML = '';
+  shuffle(events).forEach(ev => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.draggable = true;
+    card.dataset.cardId = ev.id;
+    card.id = 'card-' + ev.id;
+    card.textContent = ev.answer;
+    card.addEventListener('click', () => {
+      if (validated) return;
+      if (selectedCardId === ev.id) { setSelectedCard(null); } else { setSelectedCard(ev.id); }
+    });
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', ev.id);
+      setSelectedCard(null);
+    });
+    pool.appendChild(card);
+  });
+}
+
+function validate() {
+  if (validated) return;
+  if (!profil) {
+    const card = document.querySelector('.profil-card');
+    card.style.border = '1.5px solid #a32d2d';
+    card.style.background = '#fcebeb';
+    const msg = document.getElementById('profilError');
+    if (msg) msg.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  validated = true;
+  setSelectedCard(null);
+  document.getElementById('validateBtn').disabled = true;
+  let score = 0;
+  events.forEach(ev => {
+    const drop = document.getElementById('drop-' + ev.id);
+    const placed = placements[ev.id];
+    const dot = document.getElementById('dot-' + ev.id);
+    drop.innerHTML = '';
+    if (!placed) {
+      drop.className = 'drop-zone wrong';
+      drop.textContent = 'Non répondu — ' + ev.answer;
+      return;
+    }
+    const correct = placed === ev.id;
+    const placedText = events.find(x => x.id === placed).answer;
+    if (correct) {
+      score++;
+      drop.className = 'drop-zone correct';
+      drop.textContent = placedText;
+      if (dot) dot.style.background = '#1d9e75';
+    } else {
+      drop.className = 'drop-zone wrong';
+      const wrap = document.createElement('div');
+      wrap.style.lineHeight = '1.5';
+      wrap.innerHTML =
+        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;opacity:.7">Votre réponse</div>' +
+        '<div>' + placedText + '</div>' +
+        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 3px;opacity:.7">Bonne réponse</div>' +
+        '<div>' + ev.answer + '</div>';
+      drop.appendChild(wrap);
+    }
+  });
+  showResults(score);
+  sendToSheet(score);
+}
+
+function showResults(score) {
+  const card = document.getElementById('results');
+  card.classList.add('visible');
+  const total = events.length;
+  document.getElementById('scoreBig').textContent = score + '/' + total;
+  const pct = score / total;
+  let msg, sub;
+  if (pct === 1) { msg = "Parfait !"; sub = "Score maximal ! La réglementation n'a plus de secrets pour vous."; }
+  else if (pct >= 0.66) { msg = "Très bien !"; sub = "Vous maîtrisez bien la chronologie réglementaire."; }
+  else if (pct >= 0.33) { msg = "Pas mal !"; sub = "Vous avez de bonnes bases, quelques dates encore à consolider."; }
+  else { msg = "À retravailler !"; sub = "Retentez le quiz après avoir relu la frise !"; }
+  document.getElementById('scoreLabel').textContent = score + ' bonne' + (score > 1 ? 's' : '') + ' réponse' + (score > 1 ? 's' : '') + ' sur ' + total;
+  document.getElementById('resultMsg').textContent = msg;
+  document.getElementById('resultSub').textContent = sub;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function shareLinkedIn() {
+  const url = encodeURIComponent(window.location.href);
+  const text = encodeURIComponent("J'ai testé mes connaissances sur la réglementation en diagnostic immobilier — et toi ? 🏠");
+  window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + url + '&summary=' + text, '_blank');
+}
+
+function sendToSheet(score) {
+  if (SHEET_URL === "COLLER_ICI_L_URL_DU_GOOGLE_APPS_SCRIPT") {
+    document.getElementById('sendStatus').textContent = "⚠ URL Google Sheet non configurée.";
+    return;
+  }
+  const status = document.getElementById('sendStatus');
+  status.textContent = "Envoi des résultats…";
+  const params = new URLSearchParams({
+    domaine: DOMAINE,
+    profil: profil || "Non renseigné",
+    score: score,
+    total: events.length,
+    date: new Date().toISOString()
+  });
+  fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" })
+    .then(() => { status.textContent = "Résultats enregistrés. Merci !"; })
+    .catch(() => { status.textContent = "Résultats non envoyés (vérifiez la connexion)."; });
+}
+
+buildFrise();
+buildPool();
+
+</script>
+</body>
+</html>
