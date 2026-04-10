@@ -322,20 +322,67 @@
     .date-val { font-size: 12px; }
     h1 { font-size: 19px; }
   }
+
+  .correction-btn {
+    display: none;
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #185fa5;
+    border: 1.5px solid #185fa5;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 20px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .correction-btn.visible { display: block; }
+  .correction-btn:hover { background: #e6f1fb; }
+  .correction-panel {
+    display: none;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .correction-panel.visible { display: block; }
+  .correction-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #1a1a18; }
+  .correction-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid #f1efea;
+  }
+  .correction-item:last-child { border-bottom: none; }
+  .correction-date {
+    min-width: 110px;
+    text-align: right;
+  }
+  .correction-date-type { font-size: 10px; color: #888780; text-transform: uppercase; letter-spacing: 0.05em; }
+  .correction-date-val { font-size: 13px; font-weight: 600; color: #1a1a18; }
+  .correction-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #185fa5; margin-top: 4px; flex-shrink: 0;
+  }
+  .correction-text { font-size: 13px; color: #1a1a18; line-height: 1.5; flex: 1; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Frise chronologique — Diagnostic électricité</h1>
-  <p class="subtitle">Replace chaque étape réglementaire sur la bonne date. 4 questions.</p>
+  <p class="subtitle">Replacez chaque étape réglementaire sur la bonne date.</p>
   <div class="hint-bar">
     <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5"/>
     </svg>
-    <span>Appuie sur une étiquette pour la sélectionner, puis appuie sur une case de la frise pour la placer.</span>
+    <span>Appuyez sur une étiquette pour la sélectionner, puis appuyez sur une case de la frise pour la placer.</span>
   </div>
   <div class="selected-bar" id="selectedBar">
-    <div class="selected-bar-label">Étiquette sélectionnée — appuie sur une case</div>
+    <div class="selected-bar-label">Étiquette sélectionnée — appuyez sur une case</div>
     <div id="selectedBarText"></div>
   </div>
   <div class="profil-card">
@@ -352,6 +399,8 @@
   <div class="pool-label">Étiquettes à placer</div>
   <div class="card-pool" id="pool"></div>
   <button class="validate-btn" id="validateBtn" onclick="validate()">Valider mes réponses</button>
+  <button class="correction-btn" id="correctionBtn">Voir la correction complète</button>
+  <div class="correction-panel" id="correctionPanel"></div>
   <div class="results-card" id="results">
     <div class="score-big" id="scoreBig"></div>
     <div class="score-label" id="scoreLabel"></div>
@@ -361,44 +410,21 @@
     <div class="send-status" id="sendStatus"></div>
   </div>
 </div>
+<script src="config.js"></script>
 <script>
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbyWFOK_wYXKRIc7luuGmkm8Q4wJchM2jhF7rp8mF__2-vB8i6-8sdp1ct90LQ-urCqn/exec";
 const DOMAINE = "Electricite";
 const events = [
-  {
-    dateType: "",
-    dateVal: "1er nov. 2007",
-    major: false,
-    id: "el1",
-    answer: "Certification obligatoire pour les diagnostiqueurs réalisant le diagnostic électricité"
-  },
-  {
-    dateType: "Décret",
-    dateVal: "1er janv. 2009",
-    major: true,
-    id: "el2",
-    answer: "Entrée en vigueur du diagnostic électricité : état de l\'installation intérieure obligatoire pour les ventes de logements dont l\'installation a plus de 15 ans — 6e diagnostic du DDT"
-  },
-  {
-    dateType: "",
-    dateVal: "1er juil. 2017",
-    major: false,
-    id: "el3",
-    answer: "Le diagnostic électricité devient obligatoire pour la location"
-  },
-  {
-    dateType: "Arrêté",
-    dateVal: "1er juil. 2024",
-    major: false,
-    id: "el4",
-    answer: "Nouveau régime de certification : formation continue obligatoire de 7h par domaine sur un cycle de 7 ans"
-  },
+  {dateType:"",dateVal:"1er nov. 2007",major:false,id:"el1",answer:"Certification obligatoire pour les diagnostiqueurs réalisant le diagnostic électricité"},
+  {dateType:"Décret",dateVal:"1er janv. 2009",major:true,id:"el2",answer:"Entrée en vigueur du diagnostic électricité : état de l'installation intérieure obligatoire pour les ventes de logements dont l'installation a plus de 15 ans — 6e diagnostic du DDT"},
+  {dateType:"",dateVal:"1er juil. 2017",major:false,id:"el3",answer:"Le diagnostic électricité devient obligatoire pour la location"},
+  {dateType:"Arrêté",dateVal:"1er juil. 2024",major:false,id:"el4",answer:"Nouveau régime de certification : formation continue obligatoire de 7h par domaine sur un cycle de 7 ans"},
 ];
 
 let placements = {};
 let selectedCardId = null;
 let profil = "";
 let validated = false;
+let sessionId = Math.random().toString(36).substring(2, 10);
 
 function selectProfil(el, val) {
   document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
@@ -470,7 +496,7 @@ function buildFrise() {
     drop.className = 'drop-zone';
     drop.dataset.eventId = ev.id;
     drop.id = 'drop-' + ev.id;
-    drop.textContent = 'Appuie ici pour placer…';
+    drop.textContent = 'Appuyez ici pour placer\u2026';
     drop.addEventListener('click', () => onDropZoneClick(ev.id));
     drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drop-target'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('drop-target'));
@@ -505,7 +531,7 @@ function placeCard(cardId, eventId) {
     if (placements[eid] === cardId && eid !== eventId) {
       const otherDrop = document.getElementById('drop-' + eid);
       if (otherDrop) {
-        otherDrop.textContent = 'Appuie ici pour placer…';
+        otherDrop.textContent = 'Appuyez ici pour placer\u2026';
         otherDrop.className = 'drop-zone';
       }
       delete placements[eid];
@@ -521,7 +547,7 @@ function placeCard(cardId, eventId) {
   textSpan.style.paddingRight = '22px';
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-btn';
-  removeBtn.textContent = '×';
+  removeBtn.textContent = '\u00d7';
   removeBtn.title = 'Retirer';
   removeBtn.onclick = (e) => { e.stopPropagation(); removeCard(eventId); };
   drop.appendChild(textSpan);
@@ -538,7 +564,7 @@ function removeCard(eventId) {
   if (card) card.classList.remove('used');
   delete placements[eventId];
   const drop = document.getElementById('drop-' + eventId);
-  drop.textContent = 'Appuie ici pour placer…';
+  drop.textContent = 'Appuyez ici pour placer\u2026';
   drop.className = 'drop-zone';
 }
 
@@ -578,19 +604,17 @@ function validate() {
   validated = true;
   setSelectedCard(null);
   document.getElementById('validateBtn').disabled = true;
+
   let score = 0;
+  const results = [];
+
   events.forEach(ev => {
     const drop = document.getElementById('drop-' + ev.id);
     const placed = placements[ev.id];
     const dot = document.getElementById('dot-' + ev.id);
     drop.innerHTML = '';
-    if (!placed) {
-      drop.className = 'drop-zone wrong';
-      drop.textContent = 'Non répondu — ' + ev.answer;
-      return;
-    }
     const correct = placed === ev.id;
-    const placedText = events.find(x => x.id === placed).answer;
+    const placedText = placed ? events.find(x => x.id === placed).answer : null;
     if (correct) {
       score++;
       drop.className = 'drop-zone correct';
@@ -598,18 +622,54 @@ function validate() {
       if (dot) dot.style.background = '#1d9e75';
     } else {
       drop.className = 'drop-zone wrong';
-      const wrap = document.createElement('div');
-      wrap.style.lineHeight = '1.5';
-      wrap.innerHTML =
-        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;opacity:.7">Votre réponse</div>' +
-        '<div>' + placedText + '</div>' +
-        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 3px;opacity:.7">Bonne réponse</div>' +
-        '<div>' + ev.answer + '</div>';
-      drop.appendChild(wrap);
+      if (!placed) {
+        drop.textContent = 'Non r\u00e9pondu \u2014 ' + ev.answer;
+      } else {
+        const wrap = document.createElement('div');
+        wrap.style.lineHeight = '1.5';
+        wrap.innerHTML =
+          '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;opacity:.7">Votre r\u00e9ponse</div>' +
+          '<div>' + placedText + '</div>' +
+          '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 3px;opacity:.7">Bonne r\u00e9ponse</div>' +
+          '<div>' + ev.answer + '</div>';
+        drop.appendChild(wrap);
+      }
     }
+    results.push({
+      question: (ev.dateType ? ev.dateType + ' ' : '') + ev.dateVal,
+      bonneReponse: ev.answer,
+      reponseParticipant: placedText || 'Non r\u00e9pondu',
+      correct: correct
+    });
   });
+
   showResults(score);
-  sendToSheet(score);
+  buildCorrection();
+  sendToSheet(score, results);
+}
+
+function buildCorrection() {
+  const btn = document.getElementById('correctionBtn');
+  const panel = document.getElementById('correctionPanel');
+  btn.classList.add('visible');
+  btn.onclick = () => {
+    const open = panel.classList.toggle('visible');
+    btn.textContent = open ? 'Masquer la correction' : 'Voir la correction compl\u00e8te';
+    if (open) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  panel.innerHTML = '<h3>Correction compl\u00e8te</h3>';
+  events.forEach(ev => {
+    const item = document.createElement('div');
+    item.className = 'correction-item';
+    item.innerHTML =
+      '<div class="correction-date">' +
+        (ev.dateType ? '<div class="correction-date-type">' + ev.dateType + '</div>' : '') +
+        '<div class="correction-date-val">' + ev.dateVal + '</div>' +
+      '</div>' +
+      '<div class="correction-dot"></div>' +
+      '<div class="correction-text">' + ev.answer + '</div>';
+    panel.appendChild(item);
+  });
 }
 
 function showResults(score) {
@@ -619,11 +679,11 @@ function showResults(score) {
   document.getElementById('scoreBig').textContent = score + '/' + total;
   const pct = score / total;
   let msg, sub;
-  if (pct === 1) { msg = "Parfait !"; sub = "Score maximal ! La réglementation n'a plus de secrets pour vous."; }
-  else if (pct >= 0.66) { msg = "Très bien !"; sub = "Vous maîtrisez bien la chronologie réglementaire."; }
-  else if (pct >= 0.33) { msg = "Pas mal !"; sub = "Vous avez de bonnes bases, quelques dates encore à consolider."; }
-  else { msg = "À retravailler !"; sub = "Retentez le quiz après avoir relu la frise !"; }
-  document.getElementById('scoreLabel').textContent = score + ' bonne' + (score > 1 ? 's' : '') + ' réponse' + (score > 1 ? 's' : '') + ' sur ' + total;
+  if (pct === 1) { msg = "Parfait !"; sub = "Score maximal ! La r\u00e9glementation n'a plus de secrets pour vous."; }
+  else if (pct >= 0.66) { msg = "Tr\u00e8s bien !"; sub = "Vous ma\u00eetrisez bien la chronologie r\u00e9glementaire."; }
+  else if (pct >= 0.33) { msg = "Pas mal !"; sub = "Vous avez de bonnes bases, quelques dates encore \u00e0 consolider."; }
+  else { msg = "\u00c0 retravailler !"; sub = "Retentez le quiz apr\u00e8s avoir relu la correction !"; }
+  document.getElementById('scoreLabel').textContent = score + ' bonne' + (score > 1 ? 's' : '') + ' r\u00e9ponse' + (score > 1 ? 's' : '') + ' sur ' + total;
   document.getElementById('resultMsg').textContent = msg;
   document.getElementById('resultSub').textContent = sub;
   card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -631,27 +691,37 @@ function showResults(score) {
 
 function shareLinkedIn() {
   const url = encodeURIComponent(window.location.href);
-  const text = encodeURIComponent("J'ai testé mes connaissances sur la réglementation en diagnostic immobilier — et toi ? 🏠");
+  const text = encodeURIComponent("J'ai test\u00e9 mes connaissances sur la r\u00e9glementation en diagnostic immobilier \u2014 et toi ?");
   window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + url + '&summary=' + text, '_blank');
 }
 
-function sendToSheet(score) {
-  if (SHEET_URL === "COLLER_ICI_L_URL_DU_GOOGLE_APPS_SCRIPT") {
-    document.getElementById('sendStatus').textContent = "⚠ URL Google Sheet non configurée.";
+function sendToSheet(score, results) {
+  if (typeof SHEET_URL === 'undefined' || SHEET_URL === "COLLER_ICI_L_URL_DU_GOOGLE_APPS_SCRIPT") {
+    document.getElementById('sendStatus').textContent = "\u26a0 URL Google Sheet non configur\u00e9e.";
     return;
   }
   const status = document.getElementById('sendStatus');
-  status.textContent = "Envoi des résultats…";
-  const params = new URLSearchParams({
-    domaine: DOMAINE,
-    profil: profil || "Non renseigné",
-    score: score,
-    total: events.length,
-    date: new Date().toISOString()
+  status.textContent = "Envoi des r\u00e9sultats\u2026";
+  const dateStr = new Date().toISOString();
+  const total = events.length;
+  const sends = results.map(r => {
+    const params = new URLSearchParams({
+      session: sessionId,
+      domaine: DOMAINE,
+      profil: profil,
+      score: score,
+      total: total,
+      date: dateStr,
+      question: r.question,
+      bonneReponse: r.bonneReponse,
+      reponseParticipant: r.reponseParticipant,
+      correct: r.correct ? 'oui' : 'non'
+    });
+    return fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" });
   });
-  fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" })
-    .then(() => { status.textContent = "Résultats enregistrés. Merci !"; })
-    .catch(() => { status.textContent = "Résultats non envoyés (vérifiez la connexion)."; });
+  Promise.all(sends)
+    .then(() => { status.textContent = "R\u00e9sultats enregistr\u00e9s. Merci !"; })
+    .catch(() => { status.textContent = "R\u00e9sultats non envoy\u00e9s (v\u00e9rifiez la connexion)."; });
 }
 
 buildFrise();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jeu — Frise chronologique du diagnostic plomb</title>
+<title>Jeu — Frise chronologique — Diagnostic plomb</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -322,28 +322,69 @@
     .date-val { font-size: 12px; }
     h1 { font-size: 19px; }
   }
+
+  .correction-btn {
+    display: none;
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #185fa5;
+    border: 1.5px solid #185fa5;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 20px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .correction-btn.visible { display: block; }
+  .correction-btn:hover { background: #e6f1fb; }
+  .correction-panel {
+    display: none;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .correction-panel.visible { display: block; }
+  .correction-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #1a1a18; }
+  .correction-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid #f1efea;
+  }
+  .correction-item:last-child { border-bottom: none; }
+  .correction-date {
+    min-width: 110px;
+    text-align: right;
+  }
+  .correction-date-type { font-size: 10px; color: #888780; text-transform: uppercase; letter-spacing: 0.05em; }
+  .correction-date-val { font-size: 13px; font-weight: 600; color: #1a1a18; }
+  .correction-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #185fa5; margin-top: 4px; flex-shrink: 0;
+  }
+  .correction-text { font-size: 13px; color: #1a1a18; line-height: 1.5; flex: 1; }
 </style>
 </head>
 <body>
 <div class="container">
-
   <h1>Frise chronologique — Diagnostic plomb</h1>
-  <p class="subtitle">Replace chaque étape réglementaire sur la bonne date.</p>
-
+  <p class="subtitle">Replacez chaque étape réglementaire sur la bonne date.</p>
   <div class="hint-bar">
     <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5"/>
     </svg>
-    <span id="hintText">Appuie sur une étiquette pour la sélectionner, puis appuie sur une case de la frise pour la placer.</span>
+    <span>Appuyez sur une étiquette pour la sélectionner, puis appuyez sur une case de la frise pour la placer.</span>
   </div>
-
-  <!-- Étiquette sélectionnée (sticky reminder) -->
   <div class="selected-bar" id="selectedBar">
-    <div class="selected-bar-label">Étiquette sélectionnée — appuie sur une case</div>
+    <div class="selected-bar-label">Étiquette sélectionnée — appuyez sur une case</div>
     <div id="selectedBarText"></div>
   </div>
-
-  <!-- Profil -->
   <div class="profil-card">
     <h2>Avant de commencer — vous êtes :</h2>
     <div class="radio-group">
@@ -354,78 +395,38 @@
     </div>
     <div id="profilError" style="display:none; margin-top:10px; font-size:12px; color:#a32d2d;">Merci de sélectionner votre profil avant de valider.</div>
   </div>
-
-  <!-- Frise -->
   <div class="frise" id="frise"></div>
-
-  <!-- Pool -->
   <div class="pool-label">Étiquettes à placer</div>
   <div class="card-pool" id="pool"></div>
-
   <button class="validate-btn" id="validateBtn" onclick="validate()">Valider mes réponses</button>
-
+  <button class="correction-btn" id="correctionBtn">Voir la correction complète</button>
+  <div class="correction-panel" id="correctionPanel"></div>
   <div class="results-card" id="results">
-    <div class="score-big" id="scoreBig">0/6</div>
+    <div class="score-big" id="scoreBig"></div>
     <div class="score-label" id="scoreLabel"></div>
     <div class="result-msg" id="resultMsg"></div>
     <div class="result-sub" id="resultSub"></div>
     <button class="share-btn" onclick="shareLinkedIn()">Partager sur LinkedIn</button>
     <div class="send-status" id="sendStatus"></div>
   </div>
-
 </div>
+<script src="config.js"></script>
 <script>
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbyWFOK_wYXKRIc7luuGmkm8Q4wJchM2jhF7rp8mF__2-vB8i6-8sdp1ct90LQ-urCqn/exec";
-
+const DOMAINE = "Plomb";
 const events = [
-  {
-    dateType: "Loi",
-    dateVal: "29 juillet 1998",
-    major: true,
-    id: "e1",
-    answer: "Obligation pour le vendeur de fournir un ERAP (état des risques d'accessibilité au plomb) pour tout bien construit avant 1948"
-  },
-  {
-    dateType: "Arrêté",
-    dateVal: "25 avril 2006",
-    major: true,
-    id: "e2",
-    answer: "L'ERAP est remplacé par le CREP — concerne les immeubles avant 1949, obligation vendeur et bailleur dès le 1er juin 2006"
-  },
-  {
-    dateType: "",
-    dateVal: "1er nov. 2007",
-    major: false,
-    id: "e3",
-    answer: "Certification obligatoire pour les diagnostiqueurs réalisant le diagnostic plomb"
-  },
-  {
-    dateType: "",
-    dateVal: "12 août 2008",
-    major: false,
-    id: "e4",
-    answer: "Extension du CREP au marché locatif — annexé à tout nouveau contrat de location ou renouvellement de bail"
-  },
-  {
-    dateType: "Arrêtés",
-    dateVal: "1er fév. 2012",
-    major: false,
-    id: "e5",
-    answer: "Certification avec mention pour le plomb — autorise le DRIPP et les contrôles après travaux en présence de plomb"
-  },
-  {
-    dateType: "",
-    dateVal: "1er sept. 2024",
-    major: false,
-    id: "e6",
-    answer: "Nouveau régime de certification — formation continue obligatoire de 7h par domaine (dont plomb) sur cycle de 7 ans"
-  }
+  {dateType:"Loi",dateVal:"29 juillet 1998",major:true,id:"p1",answer:"Obligation pour le vendeur de fournir un ERAP (état des risques d'accessibilité au plomb) pour tout bien construit avant 1948"},
+  {dateType:"Arrêté",dateVal:"25 avril 2006",major:true,id:"p2",answer:"L'ERAP est remplacé par le CREP — concerne les immeubles avant 1949, obligation vendeur et bailleur dès le 1er juin 2006"},
+  {dateType:"",dateVal:"1er nov. 2007",major:false,id:"p3",answer:"Certification obligatoire pour les diagnostiqueurs réalisant le diagnostic plomb"},
+  {dateType:"",dateVal:"12 août 2008",major:false,id:"p4",answer:"Extension du CREP au marché locatif — annexé à tout nouveau contrat de location ou renouvellement de bail"},
+  {dateType:"Arrêtés",dateVal:"1er fév. 2012",major:false,id:"p5",answer:"Certification avec mention pour le plomb — autorise le DRIPP et les contrôles après travaux en présence de plomb"},
+  {dateType:"",dateVal:"1er sept. 2024",major:false,id:"p6",answer:"Nouveau régime de certification — formation continue obligatoire de 7h par domaine (dont plomb) sur cycle de 7 ans"},
 ];
 
 let placements = {};
 let selectedCardId = null;
 let profil = "";
 let validated = false;
+let sessionId = Math.random().toString(36).substring(2, 10);
 
 function selectProfil(el, val) {
   document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
@@ -466,11 +467,9 @@ function setSelectedCard(cardId) {
 function buildFrise() {
   const frise = document.getElementById('frise');
   frise.innerHTML = '';
-
   events.forEach((ev, idx) => {
     const row = document.createElement('div');
     row.className = 'timeline-row';
-
     const dateCol = document.createElement('div');
     dateCol.className = 'date-col';
     if (ev.dateType) {
@@ -483,10 +482,8 @@ function buildFrise() {
     d.className = 'date-val';
     d.textContent = ev.dateVal;
     dateCol.appendChild(d);
-
     const dotWrap = document.createElement('div');
     dotWrap.className = 'dot-col';
-
     const topLine = document.createElement('div');
     topLine.className = 'vline' + (idx === 0 ? ' hidden' : '');
     const dot = document.createElement('div');
@@ -494,19 +491,15 @@ function buildFrise() {
     dot.id = 'dot-' + ev.id;
     const botLine = document.createElement('div');
     botLine.className = 'vline' + (idx === events.length - 1 ? ' hidden' : '');
-
     dotWrap.appendChild(topLine);
     dotWrap.appendChild(dot);
     dotWrap.appendChild(botLine);
-
     const drop = document.createElement('div');
     drop.className = 'drop-zone';
     drop.dataset.eventId = ev.id;
     drop.id = 'drop-' + ev.id;
-    drop.textContent = 'Appuie ici pour placer…';
-
+    drop.textContent = 'Appuyez ici pour placer\u2026';
     drop.addEventListener('click', () => onDropZoneClick(ev.id));
-
     drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drop-target'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('drop-target'));
     drop.addEventListener('drop', e => {
@@ -515,7 +508,6 @@ function buildFrise() {
       const cardId = e.dataTransfer.getData('text/plain');
       if (cardId) placeCard(cardId, ev.id);
     });
-
     row.appendChild(dateCol);
     row.appendChild(dotWrap);
     row.appendChild(drop);
@@ -532,43 +524,34 @@ function onDropZoneClick(eventId) {
 
 function placeCard(cardId, eventId) {
   if (validated) return;
-
   const prevCardId = placements[eventId];
   if (prevCardId && prevCardId !== cardId) {
     const prevCard = document.getElementById('card-' + prevCardId);
     if (prevCard) prevCard.classList.remove('used');
   }
-
   Object.keys(placements).forEach(eid => {
     if (placements[eid] === cardId && eid !== eventId) {
       const otherDrop = document.getElementById('drop-' + eid);
       if (otherDrop) {
-        otherDrop.textContent = 'Appuie ici pour placer…';
+        otherDrop.textContent = 'Appuyez ici pour placer\u2026';
         otherDrop.className = 'drop-zone';
       }
       delete placements[eid];
     }
   });
-
   placements[eventId] = cardId;
   const card = document.getElementById('card-' + cardId);
   const drop = document.getElementById('drop-' + eventId);
-
   drop.innerHTML = '';
   const textSpan = document.createElement('span');
   textSpan.textContent = card.textContent;
   textSpan.style.flex = '1';
   textSpan.style.paddingRight = '22px';
-
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-btn';
-  removeBtn.textContent = '×';
+  removeBtn.textContent = '\u00d7';
   removeBtn.title = 'Retirer';
-  removeBtn.onclick = (e) => {
-    e.stopPropagation();
-    removeCard(eventId);
-  };
-
+  removeBtn.onclick = (e) => { e.stopPropagation(); removeCard(eventId); };
   drop.appendChild(textSpan);
   drop.appendChild(removeBtn);
   drop.className = 'drop-zone filled';
@@ -583,7 +566,7 @@ function removeCard(eventId) {
   if (card) card.classList.remove('used');
   delete placements[eventId];
   const drop = document.getElementById('drop-' + eventId);
-  drop.textContent = 'Appuie ici pour placer…';
+  drop.textContent = 'Appuyez ici pour placer\u2026';
   drop.className = 'drop-zone';
 }
 
@@ -597,21 +580,14 @@ function buildPool() {
     card.dataset.cardId = ev.id;
     card.id = 'card-' + ev.id;
     card.textContent = ev.answer;
-
     card.addEventListener('click', () => {
       if (validated) return;
-      if (selectedCardId === ev.id) {
-        setSelectedCard(null);
-      } else {
-        setSelectedCard(ev.id);
-      }
+      if (selectedCardId === ev.id) { setSelectedCard(null); } else { setSelectedCard(ev.id); }
     });
-
     card.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', ev.id);
       setSelectedCard(null);
     });
-
     pool.appendChild(card);
   });
 }
@@ -632,22 +608,15 @@ function validate() {
   document.getElementById('validateBtn').disabled = true;
 
   let score = 0;
+  const results = [];
+
   events.forEach(ev => {
     const drop = document.getElementById('drop-' + ev.id);
     const placed = placements[ev.id];
     const dot = document.getElementById('dot-' + ev.id);
-
     drop.innerHTML = '';
-
-    if (!placed) {
-      drop.className = 'drop-zone wrong';
-      drop.textContent = 'Non répondu — ' + ev.answer;
-      return;
-    }
-
     const correct = placed === ev.id;
-    const placedText = events.find(x => x.id === placed).answer;
-
+    const placedText = placed ? events.find(x => x.id === placed).answer : null;
     if (correct) {
       score++;
       drop.className = 'drop-zone correct';
@@ -655,64 +624,111 @@ function validate() {
       if (dot) dot.style.background = '#1d9e75';
     } else {
       drop.className = 'drop-zone wrong';
-      const wrap = document.createElement('div');
-      wrap.style.lineHeight = '1.5';
-      wrap.innerHTML =
-        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;opacity:.7">Votre réponse</div>' +
-        '<div>' + placedText + '</div>' +
-        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 3px;opacity:.7">Bonne réponse</div>' +
-        '<div>' + ev.answer + '</div>';
-      drop.appendChild(wrap);
+      if (!placed) {
+        drop.textContent = 'Non r\u00e9pondu \u2014 ' + ev.answer;
+      } else {
+        const wrap = document.createElement('div');
+        wrap.style.lineHeight = '1.5';
+        wrap.innerHTML =
+          '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;opacity:.7">Votre r\u00e9ponse</div>' +
+          '<div>' + placedText + '</div>' +
+          '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 3px;opacity:.7">Bonne r\u00e9ponse</div>' +
+          '<div>' + ev.answer + '</div>';
+        drop.appendChild(wrap);
+      }
     }
+    results.push({
+      question: (ev.dateType ? ev.dateType + ' ' : '') + ev.dateVal,
+      bonneReponse: ev.answer,
+      reponseParticipant: placedText || 'Non r\u00e9pondu',
+      correct: correct
+    });
   });
 
   showResults(score);
-  sendToSheet(score);
+  buildCorrection();
+  sendToSheet(score, results);
+}
+
+function buildCorrection() {
+  const btn = document.getElementById('correctionBtn');
+  const panel = document.getElementById('correctionPanel');
+  btn.classList.add('visible');
+  btn.onclick = () => {
+    const open = panel.classList.toggle('visible');
+    btn.textContent = open ? 'Masquer la correction' : 'Voir la correction compl\u00e8te';
+    if (open) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  panel.innerHTML = '<h3>Correction compl\u00e8te</h3>';
+  events.forEach(ev => {
+    const item = document.createElement('div');
+    item.className = 'correction-item';
+    item.innerHTML =
+      '<div class="correction-date">' +
+        (ev.dateType ? '<div class="correction-date-type">' + ev.dateType + '</div>' : '') +
+        '<div class="correction-date-val">' + ev.dateVal + '</div>' +
+      '</div>' +
+      '<div class="correction-dot"></div>' +
+      '<div class="correction-text">' + ev.answer + '</div>';
+    panel.appendChild(item);
+  });
 }
 
 function showResults(score) {
   const card = document.getElementById('results');
   card.classList.add('visible');
-  document.getElementById('scoreBig').textContent = score + '/6';
-  const msgs = [
-    { min: 0, max: 1, msg: "À retravailler !", sub: "La réglementation plomb n'a pas encore tous ses secrets livrés — retentez !" },
-    { min: 2, max: 3, msg: "Pas mal !", sub: "Vous avez de bonnes bases, quelques dates encore à consolider." },
-    { min: 4, max: 5, msg: "Très bien !", sub: "Vous maîtrisez bien la chronologie réglementaire du plomb." },
-    { min: 6, max: 6, msg: "Parfait !", sub: "Score maximal ! La réglementation plomb n'a plus de secrets pour vous." }
-  ];
-  const m = msgs.find(x => score >= x.min && score <= x.max);
-  document.getElementById('scoreLabel').textContent = score + ' bonne' + (score > 1 ? 's' : '') + ' réponse' + (score > 1 ? 's' : '') + ' sur 6';
-  document.getElementById('resultMsg').textContent = m.msg;
-  document.getElementById('resultSub').textContent = m.sub;
+  const total = events.length;
+  document.getElementById('scoreBig').textContent = score + '/' + total;
+  const pct = score / total;
+  let msg, sub;
+  if (pct === 1) { msg = "Parfait !"; sub = "Score maximal ! La r\u00e9glementation n'a plus de secrets pour vous."; }
+  else if (pct >= 0.66) { msg = "Tr\u00e8s bien !"; sub = "Vous ma\u00eetrisez bien la chronologie r\u00e9glementaire."; }
+  else if (pct >= 0.33) { msg = "Pas mal !"; sub = "Vous avez de bonnes bases, quelques dates encore \u00e0 consolider."; }
+  else { msg = "\u00c0 retravailler !"; sub = "Retentez le quiz apr\u00e8s avoir relu la correction !"; }
+  document.getElementById('scoreLabel').textContent = score + ' bonne' + (score > 1 ? 's' : '') + ' r\u00e9ponse' + (score > 1 ? 's' : '') + ' sur ' + total;
+  document.getElementById('resultMsg').textContent = msg;
+  document.getElementById('resultSub').textContent = sub;
   card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function shareLinkedIn() {
   const url = encodeURIComponent(window.location.href);
-  const text = encodeURIComponent("J'ai testé mes connaissances sur la réglementation du diagnostic plomb — et toi ? 🏠");
+  const text = encodeURIComponent("J'ai test\u00e9 mes connaissances sur la r\u00e9glementation en diagnostic immobilier \u2014 et toi ?");
   window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + url + '&summary=' + text, '_blank');
 }
 
-function sendToSheet(score) {
-  if (SHEET_URL === "COLLER_ICI_L_URL_DU_GOOGLE_APPS_SCRIPT") {
-    document.getElementById('sendStatus').textContent = "⚠ URL Google Sheet non configurée.";
+function sendToSheet(score, results) {
+  if (typeof SHEET_URL === 'undefined' || SHEET_URL === "COLLER_ICI_L_URL_DU_GOOGLE_APPS_SCRIPT") {
+    document.getElementById('sendStatus').textContent = "\u26a0 URL Google Sheet non configur\u00e9e.";
     return;
   }
   const status = document.getElementById('sendStatus');
-  status.textContent = "Envoi des résultats…";
-  const params = new URLSearchParams({
-    profil: profil || "Non renseigné",
-    score: score,
-    total: events.length,
-    date: new Date().toISOString()
+  status.textContent = "Envoi des r\u00e9sultats\u2026";
+  const dateStr = new Date().toISOString();
+  const total = events.length;
+  const sends = results.map(r => {
+    const params = new URLSearchParams({
+      session: sessionId,
+      domaine: DOMAINE,
+      profil: profil,
+      score: score,
+      total: total,
+      date: dateStr,
+      question: r.question,
+      bonneReponse: r.bonneReponse,
+      reponseParticipant: r.reponseParticipant,
+      correct: r.correct ? 'oui' : 'non'
+    });
+    return fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" });
   });
-  fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" })
-    .then(() => { status.textContent = "Résultats enregistrés. Merci !"; })
-    .catch(() => { status.textContent = "Résultats non envoyés (vérifiez la connexion)."; });
+  Promise.all(sends)
+    .then(() => { status.textContent = "R\u00e9sultats enregistr\u00e9s. Merci !"; })
+    .catch(() => { status.textContent = "R\u00e9sultats non envoy\u00e9s (v\u00e9rifiez la connexion)."; });
 }
 
 buildFrise();
 buildPool();
+
 </script>
 </body>
 </html>
