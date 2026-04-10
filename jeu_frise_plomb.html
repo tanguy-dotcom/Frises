@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeu — Frise chronologique du diagnostic plomb</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1a1a18;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #6b6b65;
+    margin-bottom: 28px;
+  }
+
+  /* --- Profil --- */
+  .profil-card {
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+
+  .profil-card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: #1a1a18;
+  }
+
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f5f4f0;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+
+  .radio-option input[type="radio"] { display: none; }
+
+  .radio-option.selected {
+    background: #e6f1fb;
+    border-color: #378add;
+    color: #0c447c;
+    font-weight: 500;
+  }
+
+  /* --- Frise --- */
+  .frise { margin-bottom: 32px; }
+
+  .timeline-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 12px;
+  }
+
+  .date-col {
+    width: 150px;
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding-right: 16px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .date-type {
+    font-size: 10px;
+    color: #888780;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+
+  .date-val {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a18;
+    line-height: 1.3;
+  }
+
+  .dot-col {
+    width: 32px;
+    min-width: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .vline {
+    width: 2px;
+    background: #d3d1c7;
+    flex: 1;
+    min-height: 12px;
+  }
+
+  .vline.hidden { visibility: hidden; }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #b4b2a9;
+    border: 2px solid #f5f4f0;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .dot.major {
+    width: 16px;
+    height: 16px;
+    background: #185fa5;
+  }
+
+  .drop-zone {
+    flex: 1;
+    min-height: 56px;
+    border: 1.5px dashed #b4b2a9;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #888780;
+    display: flex;
+    align-items: center;
+    transition: background 0.15s, border-color 0.15s;
+    cursor: default;
+    line-height: 1.5;
+    align-self: center;
+  }
+
+  .drop-zone.over {
+    background: #e6f1fb;
+    border-color: #378add;
+    border-style: dashed;
+  }
+
+  .drop-zone.filled {
+    border-style: solid;
+    border-color: #d3d1c7;
+    background: #fff;
+    color: #1a1a18;
+  }
+
+  .drop-zone.correct {
+    border-style: solid;
+    background: #eaf3de;
+    border-color: #3b6d11;
+    color: #27500a;
+  }
+
+  .drop-zone.wrong {
+    border-style: solid;
+    background: #fcebeb;
+    border-color: #a32d2d;
+    color: #791f1f;
+  }
+
+  /* --- Pool de cartes --- */
+  .pool-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a18;
+    margin-bottom: 12px;
+  }
+
+  .card-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    font-size: 12px;
+    color: #1a1a18;
+    background: #fff;
+    border: 0.5px solid #b4b2a9;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: grab;
+    line-height: 1.5;
+    max-width: 320px;
+    user-select: none;
+    transition: opacity 0.2s, box-shadow 0.15s;
+  }
+
+  .card:active { cursor: grabbing; }
+
+  .card.dragging { opacity: 0.45; }
+
+  .card.used {
+    opacity: 0.2;
+    pointer-events: none;
+  }
+
+  /* --- Bouton valider --- */
+  .validate-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: #185fa5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 20px;
+  }
+
+  .validate-btn:hover { background: #0c447c; }
+  .validate-btn:disabled { background: #b4b2a9; cursor: default; }
+
+  /* --- Résultats --- */
+  .results-card {
+    display: none;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .results-card.visible { display: block; }
+
+  .score-big {
+    font-size: 48px;
+    font-weight: 700;
+    color: #185fa5;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .score-label {
+    font-size: 14px;
+    color: #6b6b65;
+    margin-bottom: 20px;
+  }
+
+  .result-msg {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .result-sub {
+    font-size: 13px;
+    color: #6b6b65;
+    margin-bottom: 20px;
+  }
+
+  .share-btn {
+    display: inline-block;
+    padding: 10px 24px;
+    background: #0a66c2;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s;
+  }
+
+  .share-btn:hover { background: #084f97; }
+
+  .send-status {
+    font-size: 12px;
+    color: #888780;
+    margin-top: 16px;
+    min-height: 18px;
+  }
+
+  /* --- Corrections --- */
+  .correction-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    display: block;
+  }
+
+  .correction-text { font-size: 12px; line-height: 1.5; }
+
+  @media (max-width: 500px) {
+    .date-col { width: 110px; min-width: 110px; }
+    .date-val { font-size: 13px; }
+    .card { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Frise chronologique — Diagnostic plomb</h1>
+  <p class="subtitle">Replace chaque étape réglementaire sur la bonne date. 6 questions · Glisse et dépose les étiquettes.</p>
+
+  <!-- Profil -->
+  <div class="profil-card">
+    <h2>Avant de commencer — vous êtes :</h2>
+    <div class="radio-group" id="profilGroup">
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en activité')">
+        <input type="radio" name="profil" value="Diagnostiqueur en activité">
+        Diagnostiqueur en activité
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en formation')">
+        <input type="radio" name="profil" value="Diagnostiqueur en formation">
+        Diagnostiqueur en formation
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Professionnel de l\'immobilier')">
+        <input type="radio" name="profil" value="Professionnel de l'immobilier">
+        Professionnel de l'immobilier
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Autre / Curieux')">
+        <input type="radio" name="profil" value="Autre / Curieux">
+        Autre / Curieux
+      </label>
+    </div>
+  </div>
+
+  <!-- Frise -->
+  <div class="frise" id="frise"></div>
+
+  <!-- Pool -->
+  <div class="pool-label">Étiquettes à placer</div>
+  <div class="card-pool" id="pool"></div>
+
+  <!-- Valider -->
+  <button class="validate-btn" id="validateBtn" onclick="validate()">Valider mes réponses</button>
+
+  <!-- Résultats -->
+  <div class="results-card" id="results">
+    <div class="score-big" id="scoreBig">0/6</div>
+    <div class="score-label" id="scoreLabel"></div>
+    <div class="result-msg" id="resultMsg"></div>
+    <div class="result-sub" id="resultSub"></div>
+    <button class="share-btn" onclick="shareLinkedIn()">Partager sur LinkedIn</button>
+    <div class="send-status" id="sendStatus"></div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyWFOK_wYXKRIc7luuGmkm8Q4wJchM2jhF7rp8mF__2-vB8i6-8sdp1ct90LQ-urCqn/exec";
+
+const events = [
+  {
+    dateType: "Loi",
+    dateVal: "29 juillet 1998",
+    major: true,
+    id: "e1",
+    answer: "Obligation pour le vendeur de fournir un ERAP (état des risques d'accessibilité au plomb) pour tout bien construit avant 1948"
+  },
+  {
+    dateType: "Arrêté",
+    dateVal: "25 avril 2006",
+    major: true,
+    id: "e2",
+    answer: "L'ERAP est remplacé par le CREP — concerne les immeubles avant 1949, obligation vendeur et bailleur dès le 1er juin 2006"
+  },
+  {
+    dateType: "",
+    dateVal: "1er nov. 2007",
+    major: false,
+    id: "e3",
+    answer: "Certification obligatoire pour les diagnostiqueurs réalisant le diagnostic plomb"
+  },
+  {
+    dateType: "",
+    dateVal: "12 août 2008",
+    major: false,
+    id: "e4",
+    answer: "Extension du CREP au marché locatif — annexé à tout nouveau contrat de location ou renouvellement de bail"
+  },
+  {
+    dateType: "Arrêtés",
+    dateVal: "1er fév. 2012",
+    major: false,
+    id: "e5",
+    answer: "Certification avec mention pour le plomb — autorise le DRIPP et les contrôles après travaux en présence de plomb"
+  },
+  {
+    dateType: "",
+    dateVal: "1er sept. 2024",
+    major: false,
+    id: "e6",
+    answer: "Nouveau régime de certification — formation continue obligatoire de 7h par domaine (dont plomb) sur cycle de 7 ans"
+  }
+];
+
+let placements = {};
+let profil = "";
+let validated = false;
+
+function selectProfil(el, val) {
+  document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  profil = val;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildFrise() {
+  const frise = document.getElementById('frise');
+  frise.innerHTML = '';
+  events.forEach((ev, idx) => {
+    const row = document.createElement('div');
+    row.className = 'timeline-row';
+
+    const dateCol = document.createElement('div');
+    dateCol.className = 'date-col';
+    if (ev.dateType) {
+      const t = document.createElement('div');
+      t.className = 'date-type';
+      t.textContent = ev.dateType;
+      dateCol.appendChild(t);
+    }
+    const d = document.createElement('div');
+    d.className = 'date-val';
+    d.textContent = ev.dateVal;
+    dateCol.appendChild(d);
+
+    const dotWrap = document.createElement('div');
+    dotWrap.className = 'dot-col';
+
+    const topLine = document.createElement('div');
+    topLine.className = 'vline' + (idx === 0 ? ' hidden' : '');
+
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (ev.major ? ' major' : '');
+    dot.id = 'dot-' + ev.id;
+
+    const botLine = document.createElement('div');
+    botLine.className = 'vline' + (idx === events.length - 1 ? ' hidden' : '');
+
+    dotWrap.appendChild(topLine);
+    dotWrap.appendChild(dot);
+    dotWrap.appendChild(botLine);
+
+    const drop = document.createElement('div');
+    drop.className = 'drop-zone';
+    drop.dataset.eventId = ev.id;
+    drop.id = 'drop-' + ev.id;
+    drop.textContent = 'Déposer ici…';
+
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', onDrop);
+
+    row.appendChild(dateCol);
+    row.appendChild(dotWrap);
+    row.appendChild(drop);
+    frise.appendChild(row);
+  });
+}
+
+function buildPool() {
+  const pool = document.getElementById('pool');
+  pool.innerHTML = '';
+  const shuffled = shuffle(events);
+  shuffled.forEach(ev => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.draggable = true;
+    card.dataset.cardId = ev.id;
+    card.id = 'card-' + ev.id;
+    card.textContent = ev.answer;
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', ev.id);
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    pool.appendChild(card);
+  });
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  if (validated) return;
+  const drop = e.currentTarget;
+  drop.classList.remove('over');
+  const cardId = e.dataTransfer.getData('text/plain');
+  const eventId = drop.dataset.eventId;
+
+  const prevCardId = placements[eventId];
+  if (prevCardId && prevCardId !== cardId) {
+    const prevCard = document.getElementById('card-' + prevCardId);
+    if (prevCard) prevCard.classList.remove('used');
+  }
+
+  const card = document.getElementById('card-' + cardId);
+  if (!card) return;
+
+  Object.keys(placements).forEach(eid => {
+    if (placements[eid] === cardId && eid !== eventId) {
+      const otherDrop = document.getElementById('drop-' + eid);
+      if (otherDrop) {
+        otherDrop.textContent = 'Déposer ici…';
+        otherDrop.className = 'drop-zone';
+      }
+      delete placements[eid];
+    }
+  });
+
+  placements[eventId] = cardId;
+  drop.textContent = card.textContent;
+  drop.className = 'drop-zone filled';
+  card.classList.add('used');
+}
+
+function validate() {
+  if (validated) return;
+  validated = true;
+  document.getElementById('validateBtn').disabled = true;
+
+  let score = 0;
+  events.forEach(ev => {
+    const drop = document.getElementById('drop-' + ev.id);
+    const placed = placements[ev.id];
+    if (!placed) {
+      drop.textContent = 'Non répondu';
+      drop.className = 'drop-zone wrong';
+      return;
+    }
+    const correct = placed === ev.id;
+    if (correct) {
+      score++;
+      drop.className = 'drop-zone correct';
+      const dot = document.getElementById('dot-' + ev.id);
+      if (dot) dot.style.background = '#1d9e75';
+    } else {
+      drop.className = 'drop-zone wrong';
+      const correctText = events.find(x => x.id === ev.id).answer;
+      const span = document.createElement('span');
+      span.innerHTML = '<span class="correction-label">Votre réponse :</span><span class="correction-text">' + drop.textContent + '</span>';
+      drop.innerHTML = '';
+      drop.appendChild(span);
+    }
+  });
+
+  showResults(score);
+  sendToSheet(score);
+}
+
+function showResults(score) {
+  const card = document.getElementById('results');
+  card.classList.add('visible');
+  document.getElementById('scoreBig').textContent = score + '/6';
+
+  const msgs = [
+    { min: 0, max: 1, msg: "À retravailler !", sub: "La réglementation plomb n'a plus de secret à vous livrer — retentez !" },
+    { min: 2, max: 3, msg: "Pas mal !", sub: "Vous avez de bonnes bases, quelques dates à réviser." },
+    { min: 4, max: 5, msg: "Très bien !", sub: "Vous maîtrisez bien la chronologie réglementaire du plomb." },
+    { min: 6, max: 6, msg: "Parfait !", sub: "Score maximal ! La réglementation plomb n'a plus de secrets pour vous." }
+  ];
+
+  const m = msgs.find(x => score >= x.min && score <= x.max);
+  document.getElementById('scoreLabel').textContent = score + ' bonne' + (score > 1 ? 's' : '') + ' réponse' + (score > 1 ? 's' : '') + ' sur 6';
+  document.getElementById('resultMsg').textContent = m.msg;
+  document.getElementById('resultSub').textContent = m.sub;
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function shareLinkedIn() {
+  const url = encodeURIComponent(window.location.href);
+  const text = encodeURIComponent("J'ai testé mes connaissances sur la réglementation du diagnostic plomb — et toi ? 🏠");
+  window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + url + '&summary=' + text, '_blank');
+}
+
+function sendToSheet(score) {
+  if (SHEET_URL === "COLLER_ICI_L_URL_DU_GOOGLE_APPS_SCRIPT") {
+    document.getElementById('sendStatus').textContent = "⚠ URL Google Sheet non configurée.";
+    return;
+  }
+  const status = document.getElementById('sendStatus');
+  status.textContent = "Envoi des résultats…";
+
+  const params = new URLSearchParams({
+    profil: profil || "Non renseigné",
+    score: score,
+    total: events.length,
+    date: new Date().toISOString()
+  });
+
+  fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" })
+    .then(() => { status.textContent = "Résultats enregistrés. Merci !"; })
+    .catch(() => { status.textContent = "Résultats non envoyés (vérifiez la connexion)."; });
+}
+
+buildFrise();
+buildPool();
+</script>
+</body>
+</html>
