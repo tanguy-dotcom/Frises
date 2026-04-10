@@ -373,8 +373,13 @@
 </head>
 <body>
 <div class="container">
-  <h1>Frise chronologique — Diagnostic plomb</h1>
-  <p class="subtitle">Replacez chaque étape réglementaire sur la bonne date.</p>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+    <div>
+      <h1 style="margin:0;">Frise chronologique — Diagnostic plomb</h1>
+      <p class="subtitle" style="margin:4px 0 0;">Replacez chaque étape réglementaire sur la bonne date.</p>
+    </div>
+    <img src="logo.png" alt="JRS Formation" style="height:48px; width:auto; flex-shrink:0; margin-left:16px;">
+  </div>
   <div class="hint-bar">
     <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5"/>
@@ -706,22 +711,22 @@ function sendToSheet(score, results) {
   status.textContent = "Envoi des r\u00e9sultats\u2026";
   const dateStr = new Date().toISOString();
   const total = events.length;
-  const sends = results.map(r => {
-    const params = new URLSearchParams({
-      session: sessionId,
-      domaine: DOMAINE,
-      profil: profil,
-      score: score,
-      total: total,
-      date: dateStr,
-      question: r.question,
-      bonneReponse: r.bonneReponse,
-      reponseParticipant: r.reponseParticipant,
-      correct: r.correct ? 'oui' : 'non'
-    });
-    return fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" });
-  });
-  Promise.all(sends)
+   async function sendSequential() {
+    const d2 = new Date().toISOString();
+    const tot = events.length;
+    for (const r of results) {
+      const params = new URLSearchParams({
+        session: sessionId, domaine: DOMAINE, profil: profil,
+        score: score, total: tot, date: d2,
+        question: r.question, bonneReponse: r.bonneReponse,
+        reponseParticipant: r.reponseParticipant,
+        correct: r.correct ? 'oui' : 'non'
+      });
+      await fetch(SHEET_URL + "?" + params.toString(), { method: "GET", mode: "no-cors" });
+      await new Promise(res => setTimeout(res, 350));
+    }
+  }
+  sendSequential()
     .then(() => { status.textContent = "R\u00e9sultats enregistr\u00e9s. Merci !"; })
     .catch(() => { status.textContent = "R\u00e9sultats non envoy\u00e9s (v\u00e9rifiez la connexion)."; });
 }
