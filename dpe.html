@@ -56,24 +56,42 @@
   .radio-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: #f5f4f0;
-    border: 0.5px solid #d3d1c7;
-    border-radius: 8px;
-    padding: 10px 16px;
+    gap: 10px;
+    background: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 8px;
     cursor: pointer;
     font-size: 14px;
     transition: background 0.15s, border-color 0.15s;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    width: 100%;
   }
-
+  .radio-option .radio-circle {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid #b4b2a9;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.15s;
+  }
+  .radio-option.selected .radio-circle {
+    border-color: #185fa5;
+    background: #185fa5;
+  }
+  .radio-option.selected .radio-circle::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    display: block;
+  }
   .radio-option.selected {
-    background: #e6f1fb;
+    background: #f0f6fd;
     border-color: #378add;
     color: #0c447c;
-    font-weight: 500;
   }
+  .radio-group { display: flex; flex-direction: column; gap: 8px; }
 
   /* Frise */
   .frise { margin-bottom: 32px; }
@@ -380,6 +398,24 @@
     </div>
     <img src="logo.png" alt="JRS Formation" style="height:48px; width:auto; flex-shrink:0; margin-left:16px;">
   </div>
+  <div class="profil-card">
+    <h2>Avant de commencer — vous êtes :</h2>
+    <div class="radio-group">
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en activité')">
+        <span class="radio-circle"></span>Diagnostiqueur en activité
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en formation')">
+        <span class="radio-circle"></span>Diagnostiqueur en formation
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Professionnel de l\'immobilier')">
+        <span class="radio-circle"></span>Professionnel de l'immobilier
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Autre / Curieux')">
+        <span class="radio-circle"></span>Autre / Curieux
+      </label>
+    </div>
+    <div id="profilError" style="display:none; margin-top:10px; font-size:12px; color:#a32d2d;">Merci de sélectionner votre profil avant de valider.</div>
+  </div>
   <div class="hint-bar">
     <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5"/>
@@ -389,16 +425,6 @@
   <div class="selected-bar" id="selectedBar">
     <div class="selected-bar-label">Étiquette sélectionnée — appuyez sur une case</div>
     <div id="selectedBarText"></div>
-  </div>
-  <div class="profil-card">
-    <h2>Avant de commencer — vous êtes :</h2>
-    <div class="radio-group">
-      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en activité')">Diagnostiqueur en activité</label>
-      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en formation')">Diagnostiqueur en formation</label>
-      <label class="radio-option" onclick="selectProfil(this, 'Professionnel de l\'immobilier')">Professionnel de l'immobilier</label>
-      <label class="radio-option" onclick="selectProfil(this, 'Autre / Curieux')">Autre / Curieux</label>
-    </div>
-    <div id="profilError" style="display:none; margin-top:10px; font-size:12px; color:#a32d2d;">Merci de sélectionner votre profil avant de valider.</div>
   </div>
   <div class="frise" id="frise"></div>
   <div class="pool-label">Étiquettes à placer</div>
@@ -422,7 +448,7 @@ const events = [
   {dateType:"Décret",dateVal:"14 sept. 2006",major:true,id:"d1",answer:"Création du DPE : obligation pour tout bâtiment clos et couvert, exigible pour les ventes à compter du 1er novembre 2006"},
   {dateType:"Arrêté",dateVal:"1er juil. 2007",major:false,id:"d2",answer:"Extension du DPE au marché locatif : le DPE doit être annexé au bail lors de sa signature ou de son renouvellement"},
   {dateType:"Loi Grenelle 2",dateVal:"13 juil. 2010",major:false,id:"d3",answer:"La loi Grenelle 2 introduit de nombreuses mesures impactant le DPE"},
-  {dateType:"",dateVal:"1er juil. 2021",major:true,id:"d4",answer:"Réforme majeure : abandon de la méthode sur factures au profit de la méthode 3CL, prise en compte des GES, DPE opposable — corrigé par arrêté du 8 octobre 2021"},
+  {dateType:"",dateVal:"1er juil. 2021",major:true,id:"d4",answer:"Réforme majeure : abandon de la méthode sur factures pour les habitations, au profit de la méthode 3CL, prise en compte des GES, DPE opposable — corrigé par arrêté du 8 octobre 2021"},
   {dateType:"Loi Climat",dateVal:"22 août 2021",major:false,id:"d5",answer:"Loi Climat et Résilience : obligations renforcées pour les copropriétés, gel des loyers des passoires thermiques, seuils de décence énergétique"},
   {dateType:"Arrêté",dateVal:"4 mai 2022",major:false,id:"d6",answer:"Définition des exigences pour les audits énergétiques en France métropolitaine — obligatoire pour les biens classés F et G dès le 1er septembre 2022"},
   {dateType:"",dateVal:"1er avr. 2023",major:false,id:"d7",answer:"L'audit énergétique devient obligatoire pour la vente des passoires thermiques (F et G) en monopropriété"},
@@ -677,7 +703,7 @@ function buildCorrection() {
         (ev.dateType ? '<div class="correction-date-type">' + ev.dateType + '</div>' : '') +
         '<div class="correction-date-val">' + ev.dateVal + '</div>' +
       '</div>' +
-      '<div class="correction-dot"></div>' +
+      '<div class="correction-dot' + (ev.major ? ' major' : '') + '"></div>' +
       '<div class="correction-text">' + ev.answer + '</div>';
     panel.appendChild(item);
   });
@@ -713,9 +739,7 @@ function sendToSheet(score, results) {
   }
   const status = document.getElementById('sendStatus');
   status.textContent = "Envoi des r\u00e9sultats\u2026";
-  const dateStr = new Date().toISOString();
-  const total = events.length;
-   async function sendSequential() {
+  async function sendSequential() {
     const d2 = new Date().toISOString();
     const tot = events.length;
     for (const r of results) {

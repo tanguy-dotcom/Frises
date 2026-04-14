@@ -56,24 +56,42 @@
   .radio-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: #f5f4f0;
-    border: 0.5px solid #d3d1c7;
-    border-radius: 8px;
-    padding: 10px 16px;
+    gap: 10px;
+    background: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 8px;
     cursor: pointer;
     font-size: 14px;
     transition: background 0.15s, border-color 0.15s;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    width: 100%;
   }
-
+  .radio-option .radio-circle {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid #b4b2a9;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.15s;
+  }
+  .radio-option.selected .radio-circle {
+    border-color: #185fa5;
+    background: #185fa5;
+  }
+  .radio-option.selected .radio-circle::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    display: block;
+  }
   .radio-option.selected {
-    background: #e6f1fb;
+    background: #f0f6fd;
     border-color: #378add;
     color: #0c447c;
-    font-weight: 500;
   }
+  .radio-group { display: flex; flex-direction: column; gap: 8px; }
 
   /* Frise */
   .frise { margin-bottom: 32px; }
@@ -380,6 +398,24 @@
     </div>
     <img src="logo.png" alt="JRS Formation" style="height:48px; width:auto; flex-shrink:0; margin-left:16px;">
   </div>
+  <div class="profil-card">
+    <h2>Avant de commencer — vous êtes :</h2>
+    <div class="radio-group">
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en activité')">
+        <span class="radio-circle"></span>Diagnostiqueur en activité
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en formation')">
+        <span class="radio-circle"></span>Diagnostiqueur en formation
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Professionnel de l\'immobilier')">
+        <span class="radio-circle"></span>Professionnel de l'immobilier
+      </label>
+      <label class="radio-option" onclick="selectProfil(this, 'Autre / Curieux')">
+        <span class="radio-circle"></span>Autre / Curieux
+      </label>
+    </div>
+    <div id="profilError" style="display:none; margin-top:10px; font-size:12px; color:#a32d2d;">Merci de sélectionner votre profil avant de valider.</div>
+  </div>
   <div class="hint-bar">
     <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5"/>
@@ -389,16 +425,6 @@
   <div class="selected-bar" id="selectedBar">
     <div class="selected-bar-label">Étiquette sélectionnée — appuyez sur une case</div>
     <div id="selectedBarText"></div>
-  </div>
-  <div class="profil-card">
-    <h2>Avant de commencer — vous êtes :</h2>
-    <div class="radio-group">
-      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en activité')">Diagnostiqueur en activité</label>
-      <label class="radio-option" onclick="selectProfil(this, 'Diagnostiqueur en formation')">Diagnostiqueur en formation</label>
-      <label class="radio-option" onclick="selectProfil(this, 'Professionnel de l\'immobilier')">Professionnel de l'immobilier</label>
-      <label class="radio-option" onclick="selectProfil(this, 'Autre / Curieux')">Autre / Curieux</label>
-    </div>
-    <div id="profilError" style="display:none; margin-top:10px; font-size:12px; color:#a32d2d;">Merci de sélectionner votre profil avant de valider.</div>
   </div>
   <div class="frise" id="frise"></div>
   <div class="pool-label">Étiquettes à placer</div>
@@ -420,9 +446,10 @@
 const DOMAINE = "Termites";
 const events = [
   {dateType:"Loi",dateVal:"8 juin 1999",major:true,id:"t1",answer:"L'état parasitaire entre en application : en cas de vente dans une zone délimitée par arrêté préfectoral, il doit être annexé à l'acte authentique de vente"},
-  {dateType:"Décret",dateVal:"5 sept. 2006",major:false,id:"t2",answer:"L'intitulé 'état parasitaire' devient 'état relatif à la présence de termites dans le bâtiment'"},
-  {dateType:"",dateVal:"1er nov. 2007",major:false,id:"t3",answer:"Certification obligatoire pour les diagnostiqueurs réalisant le diagnostic termites"},
-  {dateType:"Arrêté",dateVal:"1er juil. 2024",major:false,id:"t4",answer:"Nouveau régime de certification : formation continue obligatoire de 7h par domaine sur un cycle de 7 ans"},
+  {dateType:"Ordonnance",dateVal:"8 juin 2005",major:true,id:"t2",answer:"Création du DDT et obligation de certification des diagnostiqueurs par des organismes accrédités"},
+  {dateType:"Décret",dateVal:"5 sept. 2006",major:false,id:"t3",answer:"L'intitulé 'état parasitaire' devient 'état relatif à la présence de termites dans le bâtiment'"},
+  {dateType:"",dateVal:"1er nov. 2007",major:false,id:"t4",answer:"Certification obligatoire pour les diagnostiqueurs réalisant le diagnostic termites"},
+  {dateType:"Arrêté",dateVal:"1er juil. 2024",major:false,id:"t5",answer:"Nouveau régime de certification : formation continue obligatoire de 7h par domaine sur un cycle de 7 ans"},
 ];
 
 let placements = {};
@@ -671,7 +698,7 @@ function buildCorrection() {
         (ev.dateType ? '<div class="correction-date-type">' + ev.dateType + '</div>' : '') +
         '<div class="correction-date-val">' + ev.dateVal + '</div>' +
       '</div>' +
-      '<div class="correction-dot"></div>' +
+      '<div class="correction-dot' + (ev.major ? ' major' : '') + '"></div>' +
       '<div class="correction-text">' + ev.answer + '</div>';
     panel.appendChild(item);
   });
@@ -707,9 +734,7 @@ function sendToSheet(score, results) {
   }
   const status = document.getElementById('sendStatus');
   status.textContent = "Envoi des r\u00e9sultats\u2026";
-  const dateStr = new Date().toISOString();
-  const total = events.length;
-   async function sendSequential() {
+  async function sendSequential() {
     const d2 = new Date().toISOString();
     const tot = events.length;
     for (const r of results) {
